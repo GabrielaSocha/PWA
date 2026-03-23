@@ -7,40 +7,78 @@ const installNavbarBtn = document.getElementById('install-navbar-btn');
 // Register Service Worker
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./service-worker.js')
+        navigator.serviceWorker.register('./service-worker.js', { scope: './' })
             .then((registration) => {
-                console.log('Service Worker registered successfully:', registration);
+                console.log('✅ Service Worker registered successfully:', registration);
+                console.log('Service Worker scope:', registration.scope);
             })
             .catch((error) => {
-                console.error('Service Worker registration failed:', error);
+                console.error('❌ Service Worker registration failed:', error);
             });
     });
+} else {
+    console.warn('Service Worker not supported in this browser');
+}
+
+// Check if app is already installed
+function checkIfInstalled() {
+    // Check if running as standalone (already installed)
+    if (window.navigator.standalone === true) {
+        console.log('✅ App is running in standalone mode (installed)');
+        return true;
+    }
+    
+    // Check display mode
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+        console.log('✅ App is in standalone display mode');
+        return true;
+    }
+    
+    return false;
 }
 
 // Listen for beforeinstallprompt event
 window.addEventListener('beforeinstallprompt', (e) => {
+    console.log('✅ beforeinstallprompt event fired - app is installable');
+    
     // Prevent the mini-infobar from appearing
     e.preventDefault();
+    
     // Store the event for later use
     deferredPrompt = e;
     
-    // Show install prompts
-    installBanner.style.display = 'block';
-    installNavbarBtn.style.display = 'block';
-    
-    console.log('PWA install prompt available');
+    // Show install prompts if not already installed
+    if (!checkIfInstalled()) {
+        console.log('Showing install prompts');
+        installBanner.style.display = 'block';
+        installNavbarBtn.style.display = 'block';
+    }
 });
 
-// Install button handler
+// Install button handler - banner
 if (installBtn) {
     installBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
+        if (!deferredPrompt) {
+            console.warn('Install prompt not available');
+            alert('Install prompt is not available. Your browser may not support PWA installation.');
+            return;
+        }
+        
+        console.log('User clicked install button');
+        
+        try {
             // Show the install prompt
             deferredPrompt.prompt();
             
             // Wait for the user response
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to install prompt: ${outcome}`);
+            console.log(`📱 User response to install prompt: ${outcome}`);
+            
+            if (outcome === 'accepted') {
+                console.log('✅ User accepted installation');
+            } else {
+                console.log('❌ User declined installation');
+            }
             
             // Clear the deferred prompt for later use
             deferredPrompt = null;
@@ -48,38 +86,70 @@ if (installBtn) {
             // Hide install prompts
             installBanner.style.display = 'none';
             installNavbarBtn.style.display = 'none';
+        } catch (error) {
+            console.error('Error during installation:', error);
         }
     });
 }
 
-// Navbar install button handler
+// Install button handler - navbar
 if (installNavbarBtn) {
     installNavbarBtn.addEventListener('click', async () => {
-        if (deferredPrompt) {
+        if (!deferredPrompt) {
+            console.warn('Install prompt not available');
+            alert('Install prompt is not available. Your browser may not support PWA installation.');
+            return;
+        }
+        
+        console.log('User clicked navbar install button');
+        
+        try {
             deferredPrompt.prompt();
             const { outcome } = await deferredPrompt.userChoice;
-            console.log(`User response to install prompt: ${outcome}`);
+            console.log(`📱 User response to install prompt: ${outcome}`);
+            
+            if (outcome === 'accepted') {
+                console.log('✅ User accepted installation');
+            } else {
+                console.log('❌ User declined installation');
+            }
+            
             deferredPrompt = null;
             installBanner.style.display = 'none';
             installNavbarBtn.style.display = 'none';
+        } catch (error) {
+            console.error('Error during installation:', error);
         }
     });
 }
 
 // Listen for app installed event
 window.addEventListener('appinstalled', () => {
-    console.log('GeoShare PWA was installed');
+    console.log('✅ GeoShare PWA was successfully installed');
+    deferredPrompt = null;
     // Hide install prompts
     installBanner.style.display = 'none';
     installNavbarBtn.style.display = 'none';
 });
 
-// Check if app is running in standalone mode
-if (window.navigator.standalone === true) {
-    console.log('App is running in standalone mode (installed)');
-    installBanner.style.display = 'none';
-    installNavbarBtn.style.display = 'none';
-}
+// Listen for display mode changes
+window.matchMedia('(display-mode: standalone)').addEventListener('change', (e) => {
+    if (e.matches) {
+        console.log('✅ App is now in standalone mode');
+        installBanner.style.display = 'none';
+        installNavbarBtn.style.display = 'none';
+    } else {
+        console.log('ℹ️ App is running in browser mode');
+    }
+});
+
+// Initial check on load
+window.addEventListener('load', () => {
+    if (checkIfInstalled()) {
+        installBanner.style.display = 'none';
+        installNavbarBtn.style.display = 'none';
+    }
+});
 
 // ============== CAMERA FUNCTIONALITY ==============
 let currentPhotoBlob = null;
