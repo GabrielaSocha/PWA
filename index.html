@@ -7,6 +7,7 @@
     <meta name="description" content="Progressive Web App starter" />
 
     <link rel="manifest" href="/manifest.json" />
+    <script src="/app.js"></script>
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -21,8 +22,8 @@
         </header>
 
         <section>
-            <button id="action">Do something</button>
-            <div class="status" id="status">Service worker: not registered</div>
+            <button onclick="startCamera()">camera</button>
+            <video autoplay></video>
         </section>
     </main>
 </body>
