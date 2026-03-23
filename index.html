@@ -4,49 +4,146 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="theme-color" content="#0a84ff" />
-    <meta name="description" content="Progressive Web App starter" />
+    <meta name="description" content="Progressive Web App for sharing photos, recording audio, and location mapping" />
 
     <link rel="manifest" href="/manifest.json" />
-      <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-    crossorigin="anonymous"
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+        crossorigin="anonymous"
     />
     <link
-    rel="stylesheet"
-    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    crossorigin="anonymous"
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        crossorigin="anonymous"
     />
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css"
+    />
+    <link rel="stylesheet" href="style.css" />
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 
-    <title>PWA Starter</title>
+    <title>GeoShare - PWA</title>
 </head>
-<body>
-    <main class="app" id="app">
-        <header>
-            <h1>PWA Starter</h1>
-            <p>Installable, offline-capable web app scaffold.</p>
-        </header>
-      <div class="col-lg-7">
-        <div class="card shadow-sm mb-4">
-          <div class="card-body">
-            <h2 class="h4 mb-3">Mapa miejsc</h2>
-            <div id="map"></div>
-            <p class="text-muted small mt-2 mb-0">
-              Mapa korzysta z OpenStreetMap i Leaflet.js. Offline mogą być widoczne tylko wcześniej zapisane dane, a nie wszystkie kafelki mapy.
-            </p>
-          </div>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary sticky-top">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-camera-fill"></i> GeoShare
+            </span>
         </div>
-        <section>
-            <button onclick="startCamera()">camera</button>
-            <video autoplay></video>
-        </section>
+    </nav>
 
-        <video id="video" width="320" height="240" autoplay></video>
-        <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
-        <button id="share-button">Share Photo</button>
+    <main class="container-fluid py-4" id="app">
+        <div class="row g-4">
+            <!-- Camera Capture Section -->
+            <div class="col-lg-6">
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-camera"></i> Camera Capture
+                        </h5>
+                    </div>
+                    <div class="card-body d-flex flex-column">
+                        <div class="video-container mb-3" style="position: relative; background: #000; border-radius: 0.375rem; overflow: hidden; min-height: 400px; display: flex; align-items: center; justify-content: center;">
+                            <video id="video" autoplay playsinline class="w-100 h-100" style="object-fit: cover;"></video>
+                        </div>
+                        <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
+                        
+                        <div class="d-grid gap-2 d-sm-flex">
+                            <button class="btn btn-success btn-lg flex-grow-1" id="start-camera-btn">
+                                <i class="bi bi-camera-video"></i> Start Camera
+                            </button>
+                            <button class="btn btn-danger btn-lg flex-grow-1" id="stop-camera-btn" style="display: none;">
+                                <i class="bi bi-stop-circle"></i> Stop Camera
+                            </button>
+                        </div>
+                        
+                        <button class="btn btn-warning btn-lg mt-2 w-100" id="capture-photo-btn" style="display: none;">
+                            <i class="bi bi-camera-fill"></i> Capture Photo
+                        </button>
+
+                        <!-- Captured Photo Preview -->
+                        <div id="photo-preview-container" style="display: none;" class="mt-3">
+                            <h6 class="mb-2">Preview:</h6>
+                            <img id="photo-preview" class="img-fluid rounded" style="max-height: 300px; width: 100%; object-fit: contain;">
+                            <div class="d-grid gap-2 d-sm-flex mt-3">
+                                <button class="btn btn-primary btn-lg flex-grow-1" id="share-button">
+                                    <i class="bi bi-share"></i> Share Photo
+                                </button>
+                                <button class="btn btn-secondary btn-lg flex-grow-1" id="clear-photo-btn">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sharing & Maps Section -->
+            <div class="col-lg-6 d-flex flex-column gap-4">
+                <!-- Sharing Features Section -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-share"></i> Share Features
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="bi bi-image"></i> Photo Sharing
+                            </h6>
+                            <p class="text-muted small mb-2">Capture a photo first, then share it to your contacts or social media.</p>
+                            <button class="btn btn-primary w-100 btn-lg" id="share-photo-standalone-btn">
+                                <i class="bi bi-share"></i> Share Captured Photo
+                            </button>
+                        </div>
+                        
+                        <hr class="my-4">
+                        
+                        <div>
+                            <h6 class="mb-3">
+                                <i class="bi bi-link-45deg"></i> Share Location
+                            </h6>
+                            <p class="text-muted small mb-2">Share your current location with others.</p>
+                            <div class="d-grid gap-2 d-sm-flex">
+                                <button class="btn btn-warning w-100 btn-lg flex-grow-1" id="get-location-btn">
+                                    <i class="bi bi-geo"></i> Get My Location
+                                </button>
+                                <button class="btn btn-info w-100 btn-lg flex-grow-1" id="share-location-btn">
+                                    <i class="bi bi-share"></i> Share Location
+                                </button>
+                            </div>
+                            <div id="location-display" class="alert alert-success mt-3" style="display: none;">
+                                <small>
+                                    <i class="bi bi-check-circle"></i> 
+                                    <strong>Location:</strong> <span id="location-coords"></span>
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Map Section -->
+                <div class="card shadow-sm flex-grow-1">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0">
+                            <i class="bi bi-geo-alt"></i> Location Map
+                        </h5>
+                    </div>
+                    <div class="card-body p-0 map-container">
+                        <div id="map" style="height: 100%; min-height: 400px;"></div>
+                        <p class="text-muted small p-3 mb-0">
+                            <i class="bi bi-info-circle"></i> Map powered by OpenStreetMap and Leaflet.js
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
     </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin="anonymous"></script>
