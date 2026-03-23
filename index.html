@@ -17,6 +17,7 @@
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
     crossorigin="anonymous"
     />
+    <script src="/app.js"></script>
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -40,8 +41,8 @@
           </div>
         </div>
         <section>
-            <button id="action">Do something</button>
-            <div class="status" id="status">Service worker: not registered</div>
+            <button onclick="startCamera()">camera</button>
+            <video autoplay></video>
         </section>
     </main>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
