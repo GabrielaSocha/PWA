@@ -29,11 +29,27 @@
     <title>GeoShare - PWA</title>
 </head>
 <body class="bg-light">
+    <!-- Install Prompt Banner -->
+    <div id="install-banner" class="alert alert-info alert-dismissible fade show m-0" style="display: none;">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <strong><i class="bi bi-download"></i> Install GeoShare</strong>
+                <p class="mb-0 small mt-1">Add GeoShare to your home screen for quick access and offline support!</p>
+            </div>
+            <button class="btn btn-sm btn-primary" id="install-btn">
+                <i class="bi bi-plus-circle"></i> Install
+            </button>
+        </div>
+    </div>
+
     <nav class="navbar navbar-dark bg-primary sticky-top">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">
                 <i class="bi bi-camera-fill"></i> GeoShare
             </span>
+            <button class="btn btn-outline-light btn-sm" id="install-navbar-btn" style="display: none;" title="Install App">
+                <i class="bi bi-download"></i> Install
+            </button>
         </div>
     </nav>
 
@@ -49,7 +65,7 @@
                     </div>
                     <div class="card-body d-flex flex-column">
                         <div class="video-container mb-3" style="position: relative; background: #000; border-radius: 0.375rem; overflow: hidden; min-height: 400px; display: flex; align-items: center; justify-content: center;">
-                            <video id="video" autoplay playsinline class="w-100 h-100" style="object-fit: cover;"></video>
+                            <video id="video" autoplay playsinline muted class="w-100 h-100" style="object-fit: cover; -webkit-transform: scaleX(-1); transform: scaleX(-1);"></video>
                         </div>
                         <canvas id="canvas" width="640" height="480" style="display:none;"></canvas>
                         

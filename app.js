@@ -1,3 +1,86 @@
+// ============== PWA INSTALL FUNCTIONALITY ==============
+let deferredPrompt;
+const installBanner = document.getElementById('install-banner');
+const installBtn = document.getElementById('install-btn');
+const installNavbarBtn = document.getElementById('install-navbar-btn');
+
+// Register Service Worker
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js')
+            .then((registration) => {
+                console.log('Service Worker registered successfully:', registration);
+            })
+            .catch((error) => {
+                console.error('Service Worker registration failed:', error);
+            });
+    });
+}
+
+// Listen for beforeinstallprompt event
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Prevent the mini-infobar from appearing
+    e.preventDefault();
+    // Store the event for later use
+    deferredPrompt = e;
+    
+    // Show install prompts
+    installBanner.style.display = 'block';
+    installNavbarBtn.style.display = 'block';
+    
+    console.log('PWA install prompt available');
+});
+
+// Install button handler
+if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            // Show the install prompt
+            deferredPrompt.prompt();
+            
+            // Wait for the user response
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            
+            // Clear the deferred prompt for later use
+            deferredPrompt = null;
+            
+            // Hide install prompts
+            installBanner.style.display = 'none';
+            installNavbarBtn.style.display = 'none';
+        }
+    });
+}
+
+// Navbar install button handler
+if (installNavbarBtn) {
+    installNavbarBtn.addEventListener('click', async () => {
+        if (deferredPrompt) {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to install prompt: ${outcome}`);
+            deferredPrompt = null;
+            installBanner.style.display = 'none';
+            installNavbarBtn.style.display = 'none';
+        }
+    });
+}
+
+// Listen for app installed event
+window.addEventListener('appinstalled', () => {
+    console.log('GeoShare PWA was installed');
+    // Hide install prompts
+    installBanner.style.display = 'none';
+    installNavbarBtn.style.display = 'none';
+});
+
+// Check if app is running in standalone mode
+if (window.navigator.standalone === true) {
+    console.log('App is running in standalone mode (installed)');
+    installBanner.style.display = 'none';
+    installNavbarBtn.style.display = 'none';
+}
+
 // ============== CAMERA FUNCTIONALITY ==============
 let currentPhotoBlob = null;
 let photoLocation = null; // Store location when photo is captured
@@ -11,93 +94,179 @@ const canvas = document.getElementById('canvas');
 
 async function startCamera() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            video: { 
+        // Request camera with more flexible constraints for mobile
+        const constraints = {
+            video: {
                 facingMode: 'user',
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
+                width: { min: 320, ideal: 640, max: 1280 },
+                height: { min: 240, ideal: 480, max: 720 },
             },
             audio: false
-        });
+        };
         
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        // Set video element properties
         video.srcObject = stream;
-        video.play();
+        video.onloadedmetadata = () => {
+            console.log('Video stream loaded, video dimensions:', video.videoWidth, 'x', video.videoHeight);
+            video.play().catch(err => console.error('Play error:', err));
+        };
+        
+        // Wait for the video to play
+        await new Promise((resolve) => {
+            video.onplaying = () => {
+                console.log('Video is playing');
+                resolve();
+            };
+            video.onloadedmetadata = () => {
+                video.play().catch(err => console.error('Play error:', err));
+            };
+        });
         
         startCameraBtn.style.display = 'none';
         stopCameraBtn.style.display = 'block';
         capturePhotoBtn.style.display = 'block';
+        
+        console.log('Camera started successfully');
     } catch (error) {
-        console.error('Camera access denied:', error);
-        alert('Camera access denied. Please allow camera permissions.');
+        console.error('Camera access error:', error);
+        
+        let errorMessage = 'Unable to access camera. ';
+        if (error.name === 'NotAllowedError') {
+            errorMessage += 'Camera permission denied. Please enable camera access in your browser settings.';
+        } else if (error.name === 'NotFoundError') {
+            errorMessage += 'No camera found on this device.';
+        } else if (error.name === 'NotReadableError') {
+            errorMessage += 'Camera is in use by another application.';
+        } else if (error.name === 'SecurityError') {
+            errorMessage += 'Camera access requires HTTPS connection.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        alert(errorMessage);
     }
 }
 
 function stopCamera() {
-    const stream = video.srcObject;
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+    try {
+        const stream = video.srcObject;
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+                console.log('Camera track stopped:', track.kind);
+            });
+        }
+        video.srcObject = null;
+        
+        startCameraBtn.style.display = 'block';
+        stopCameraBtn.style.display = 'none';
+        capturePhotoBtn.style.display = 'none';
+        
+        console.log('Camera stopped');
+    } catch (error) {
+        console.error('Error stopping camera:', error);
     }
-    
-    startCameraBtn.style.display = 'block';
-    stopCameraBtn.style.display = 'none';
-    capturePhotoBtn.style.display = 'none';
 }
 
 function capturePhoto() {
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    try {
+        // Check if video is playing
+        if (video.paused || video.ended) {
+            alert('Video is not ready. Please wait for the camera to load.');
+            return Promise.resolve();
+        }
+        
+        // Update canvas dimensions to match video
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        
+        if (width === 0 || height === 0) {
+            alert('Camera not ready. Please try again.');
+            return Promise.resolve();
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        const ctx = canvas.getContext('2d');
+        // Flip horizontally for selfie camera
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, width, height);
+        
+        // Reset transform
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
 
-    return new Promise((resolve) => {
-        canvas.toBlob((blob) => {
-            currentPhotoBlob = blob;
-            console.log('Photo captured:', blob);
-            
-            // Get location when photo is captured
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const { latitude, longitude, accuracy } = position.coords;
-                        photoLocation = { latitude, longitude, accuracy };
-                        
-                        // Display photo location
-                        const photoLocationCoords = document.getElementById('photo-location-coords');
-                        photoLocationCoords.textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                        document.getElementById('photo-location-display').style.display = 'block';
-                        
-                        // Add marker on map for photo location
-                        if (mapMarker) {
-                            map.removeLayer(mapMarker);
+        return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+                if (!blob) {
+                    alert('Failed to capture photo. Please try again.');
+                    resolve();
+                    return;
+                }
+                
+                currentPhotoBlob = blob;
+                console.log('Photo captured successfully:', blob.size, 'bytes');
+                
+                // Get location when photo is captured
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const { latitude, longitude, accuracy } = position.coords;
+                            photoLocation = { latitude, longitude, accuracy };
+                            
+                            // Display photo location
+                            const photoLocationCoords = document.getElementById('photo-location-coords');
+                            photoLocationCoords.textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                            document.getElementById('photo-location-display').style.display = 'block';
+                            
+                            // Add marker on map for photo location
+                            if (mapMarker) {
+                                map.removeLayer(mapMarker);
+                            }
+                            mapMarker = L.marker([latitude, longitude])
+                                .addTo(map)
+                                .bindPopup(`<strong>Photo Location</strong><br>${latitude.toFixed(4)}, ${longitude.toFixed(4)}<br>Accuracy: ${Math.round(accuracy)}m`)
+                                .openPopup();
+                            
+                            map.setView([latitude, longitude], 15);
+                            console.log('Photo location captured:', { latitude, longitude, accuracy });
+                        },
+                        (error) => {
+                            console.log('Could not get location for photo:', error);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            timeout: 5000,
+                            maximumAge: 0
                         }
-                        mapMarker = L.marker([latitude, longitude])
-                            .addTo(map)
-                            .bindPopup(`<strong>Photo Location</strong><br>${latitude.toFixed(4)}, ${longitude.toFixed(4)}<br>Accuracy: ${Math.round(accuracy)}m`)
-                            .openPopup();
-                        
-                        map.setView([latitude, longitude], 15);
-                    },
-                    (error) => {
-                        console.log('Could not get location for photo:', error);
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    }
-                );
-            }
-            
-            // Show preview
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                document.getElementById('photo-preview').src = e.target.result;
-                document.getElementById('photo-preview-container').style.display = 'block';
-                updateShareUI();
-            };
-            reader.readAsDataURL(blob);
-            
-            resolve(blob);
-        }, 'image/png');
-    });
+                    );
+                }
+                
+                // Show preview
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.getElementById('photo-preview').src = e.target.result;
+                    document.getElementById('photo-preview-container').style.display = 'block';
+                    updateShareUI();
+                    console.log('Photo preview displayed');
+                };
+                reader.onerror = () => {
+                    console.error('Error reading blob');
+                };
+                reader.readAsDataURL(blob);
+                
+                resolve(blob);
+            }, 'image/jpeg', 0.95);
+        });
+    } catch (error) {
+        console.error('Error capturing photo:', error);
+        alert('Error capturing photo: ' + error.message);
+        return Promise.resolve();
+    }
 }
 
 function clearPhoto() {
