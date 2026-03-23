@@ -1,11 +1,11 @@
 // ============== CAMERA FUNCTIONALITY ==============
 let currentPhotoBlob = null;
+let photoLocation = null; // Store location when photo is captured
 
 const startCameraBtn = document.getElementById('start-camera-btn');
 const stopCameraBtn = document.getElementById('stop-camera-btn');
 const capturePhotoBtn = document.getElementById('capture-photo-btn');
 const clearPhotoBtn = document.getElementById('clear-photo-btn');
-const shareButton = document.getElementById('share-button');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 
@@ -52,11 +52,46 @@ function capturePhoto() {
             currentPhotoBlob = blob;
             console.log('Photo captured:', blob);
             
+            // Get location when photo is captured
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const { latitude, longitude, accuracy } = position.coords;
+                        photoLocation = { latitude, longitude, accuracy };
+                        
+                        // Display photo location
+                        const photoLocationCoords = document.getElementById('photo-location-coords');
+                        photoLocationCoords.textContent = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                        document.getElementById('photo-location-display').style.display = 'block';
+                        
+                        // Add marker on map for photo location
+                        if (mapMarker) {
+                            map.removeLayer(mapMarker);
+                        }
+                        mapMarker = L.marker([latitude, longitude])
+                            .addTo(map)
+                            .bindPopup(`<strong>Photo Location</strong><br>${latitude.toFixed(4)}, ${longitude.toFixed(4)}<br>Accuracy: ${Math.round(accuracy)}m`)
+                            .openPopup();
+                        
+                        map.setView([latitude, longitude], 15);
+                    },
+                    (error) => {
+                        console.log('Could not get location for photo:', error);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 5000,
+                        maximumAge: 0
+                    }
+                );
+            }
+            
             // Show preview
             const reader = new FileReader();
             reader.onload = (e) => {
                 document.getElementById('photo-preview').src = e.target.result;
                 document.getElementById('photo-preview-container').style.display = 'block';
+                updateShareUI();
             };
             reader.readAsDataURL(blob);
             
@@ -67,8 +102,11 @@ function capturePhoto() {
 
 function clearPhoto() {
     currentPhotoBlob = null;
+    photoLocation = null;
     document.getElementById('photo-preview-container').style.display = 'none';
+    document.getElementById('photo-location-display').style.display = 'none';
     document.getElementById('photo-preview').src = '';
+    updateShareUI();
 }
 
 startCameraBtn.addEventListener('click', startCamera);
@@ -81,8 +119,10 @@ clearPhotoBtn.addEventListener('click', clearPhoto);
 
 
 // ============== SHARING FUNCTIONALITY ==============
-const sharePhotoStandaloneBtn = document.getElementById('share-photo-standalone-btn');
-const shareLocationBtn = document.getElementById('share-location-btn');
+const shareButton = document.getElementById('share-button');
+const sharePhotoInfoDiv = document.getElementById('share-photo-info');
+const shareLocationInfoDiv = document.getElementById('share-location-info');
+const shareLocationText = document.getElementById('share-location-text');
 const getLocationBtn = document.getElementById('get-location-btn');
 const locationDisplay = document.getElementById('location-display');
 const locationCoords = document.getElementById('location-coords');
@@ -90,6 +130,26 @@ const locationCoords = document.getElementById('location-coords');
 let currentLocation = null;
 let mapMarker = null;
 
+// Update share UI based on available data
+function updateShareUI() {
+    const hasPhoto = currentPhotoBlob !== null;
+    const hasPhotoLocation = photoLocation !== null;
+    
+    if (hasPhoto) {
+        sharePhotoInfoDiv.style.display = 'block';
+        shareButton.disabled = false;
+    } else {
+        sharePhotoInfoDiv.style.display = 'none';
+        shareButton.disabled = true;
+    }
+    
+    if (hasPhotoLocation) {
+        shareLocationInfoDiv.style.display = 'block';
+        shareLocationText.textContent = `${photoLocation.latitude.toFixed(4)}, ${photoLocation.longitude.toFixed(4)}`;
+    }
+}
+
+// Share photo with its captured location
 const share = async (title, text, blob = null) => {
   const data = {
     title: title,
@@ -116,30 +176,26 @@ const share = async (title, text, blob = null) => {
   }
 };
 
-// Share photo from preview (embedded button)
-if (document.getElementById('share-button')) {
-    document.getElementById('share-button').addEventListener('click', async () => {
-        if (currentPhotoBlob) {
-            await share('My Photo', 'Check out this photo I captured!', currentPhotoBlob);
-        } else {
-            alert('Please capture a photo first');
-        }
-    });
-}
-
-// Share photo standalone button
-sharePhotoStandaloneBtn.addEventListener('click', async () => {
+// Share button - shares photo with location
+shareButton.addEventListener('click', async () => {
     if (currentPhotoBlob) {
-        await share('My Photo', 'Check out this photo I captured!', currentPhotoBlob);
+        let shareText = 'Check out this photo I captured!';
+        
+        if (photoLocation) {
+            const { latitude, longitude } = photoLocation;
+            shareText += `\n\nLocation: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}\nGoogle Maps: https://maps.google.com/?q=${latitude},${longitude}`;
+        }
+        
+        await share('My Photo', shareText, currentPhotoBlob);
     } else {
-        alert('Please capture a photo first from the Camera Capture section');
+        alert('Please capture a photo first');
     }
 });
 
 // Get current location
 function getLocation() {
     if (navigator.geolocation) {
-        getLocationBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting Location...';
+        getLocationBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Getting...';
         getLocationBtn.disabled = true;
         
         navigator.geolocation.getCurrentPosition(
@@ -165,7 +221,7 @@ function getLocation() {
                     .bindPopup(`Your Location<br>Accuracy: ${Math.round(accuracy)}m`)
                     .openPopup();
                 
-                getLocationBtn.innerHTML = '<i class="bi bi-geo"></i> Get My Location';
+                getLocationBtn.innerHTML = '<i class="bi bi-geo"></i> Get Location';
                 getLocationBtn.disabled = false;
                 console.log('Location retrieved:', { latitude, longitude, accuracy });
             },
@@ -186,7 +242,7 @@ function getLocation() {
                 }
                 
                 alert(errorMsg);
-                getLocationBtn.innerHTML = '<i class="bi bi-geo"></i> Get My Location';
+                getLocationBtn.innerHTML = '<i class="bi bi-geo"></i> Get Location';
                 getLocationBtn.disabled = false;
             },
             {
@@ -201,17 +257,6 @@ function getLocation() {
 }
 
 getLocationBtn.addEventListener('click', getLocation);
-
-// Share location
-shareLocationBtn.addEventListener('click', async () => {
-    if (currentLocation) {
-        const { latitude, longitude } = currentLocation;
-        const locationText = `Check out my location: https://maps.google.com/?q=${latitude},${longitude}`;
-        await share('My Location', locationText);
-    } else {
-        alert('Please allow location access to share your location');
-    }
-});
 
 // ============== MAP FUNCTIONALITY ==============
 // Initialize map

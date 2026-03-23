@@ -70,10 +70,13 @@
                         <div id="photo-preview-container" style="display: none;" class="mt-3">
                             <h6 class="mb-2">Preview:</h6>
                             <img id="photo-preview" class="img-fluid rounded" style="max-height: 300px; width: 100%; object-fit: contain;">
+                            <div id="photo-location-display" class="alert alert-info mt-2" style="display: none;">
+                                <small>
+                                    <i class="bi bi-geo-alt"></i> 
+                                    <strong>Photo Location:</strong> <span id="photo-location-coords"></span>
+                                </small>
+                            </div>
                             <div class="d-grid gap-2 d-sm-flex mt-3">
-                                <button class="btn btn-primary btn-lg flex-grow-1" id="share-button">
-                                    <i class="bi bi-share"></i> Share Photo
-                                </button>
                                 <button class="btn btn-secondary btn-lg flex-grow-1" id="clear-photo-btn">
                                     <i class="bi bi-x-circle"></i> Clear
                                 </button>
@@ -85,45 +88,55 @@
 
             <!-- Sharing & Maps Section -->
             <div class="col-lg-6 d-flex flex-column gap-4">
-                <!-- Sharing Features Section -->
+                <!-- Unified Sharing Section -->
                 <div class="card shadow-sm">
                     <div class="card-header bg-success text-white">
                         <h5 class="mb-0">
-                            <i class="bi bi-share"></i> Share Features
+                            <i class="bi bi-share-fill"></i> Share Everything
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-4">
-                            <h6 class="mb-3">
-                                <i class="bi bi-image"></i> Photo Sharing
+                        <p class="text-muted small mb-3">
+                            <i class="bi bi-info-circle"></i> Share your captured photo with its location information.
+                        </p>
+                        
+                        <!-- Captured Photo Info -->
+                        <div id="share-photo-info" style="display: none;" class="mb-3 p-3 bg-light rounded">
+                            <h6 class="mb-2">
+                                <i class="bi bi-image"></i> Captured Photo
                             </h6>
-                            <p class="text-muted small mb-2">Capture a photo first, then share it to your contacts or social media.</p>
-                            <button class="btn btn-primary w-100 btn-lg" id="share-photo-standalone-btn">
-                                <i class="bi bi-share"></i> Share Captured Photo
-                            </button>
+                            <p class="text-muted small mb-0">Photo ready to share</p>
                         </div>
-                        
-                        <hr class="my-4">
-                        
-                        <div>
-                            <h6 class="mb-3">
-                                <i class="bi bi-link-45deg"></i> Share Location
+
+                        <!-- Captured Location Info -->
+                        <div id="share-location-info" style="display: none;" class="mb-3 p-3 bg-light rounded">
+                            <h6 class="mb-2">
+                                <i class="bi bi-geo-alt"></i> Capture Location
                             </h6>
-                            <p class="text-muted small mb-2">Share your current location with others.</p>
-                            <div class="d-grid gap-2 d-sm-flex">
-                                <button class="btn btn-warning w-100 btn-lg flex-grow-1" id="get-location-btn">
-                                    <i class="bi bi-geo"></i> Get My Location
-                                </button>
-                                <button class="btn btn-info w-100 btn-lg flex-grow-1" id="share-location-btn">
-                                    <i class="bi bi-share"></i> Share Location
-                                </button>
-                            </div>
-                            <div id="location-display" class="alert alert-success mt-3" style="display: none;">
-                                <small>
-                                    <i class="bi bi-check-circle"></i> 
-                                    <strong>Location:</strong> <span id="location-coords"></span>
-                                </small>
-                            </div>
+                            <p class="text-muted small mb-0">
+                                <span id="share-location-text">Location will be captured with photo</span>
+                            </p>
+                        </div>
+
+                        <!-- Share Button -->
+                        <button class="btn btn-success btn-lg w-100 mb-3" id="share-button" disabled>
+                            <i class="bi bi-share-fill"></i> Share Photo with Location
+                        </button>
+
+                        <hr class="my-3">
+
+                        <!-- Get Location Button -->
+                        <h6 class="mb-3">
+                            <i class="bi bi-map"></i> My Current Location
+                        </h6>
+                        <button class="btn btn-warning btn-lg w-100" id="get-location-btn">
+                            <i class="bi bi-geo"></i> Get Location
+                        </button>
+                        <div id="location-display" class="alert alert-success mt-3" style="display: none;">
+                            <small>
+                                <i class="bi bi-check-circle"></i> 
+                                <strong>Location:</strong> <span id="location-coords"></span>
+                            </small>
                         </div>
                     </div>
                 </div>
