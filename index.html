@@ -7,7 +7,6 @@
     <meta name="description" content="Progressive Web App starter" />
 
     <link rel="manifest" href="/manifest.json" />
-    <script src="/app.js"></script>
 
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -25,6 +24,12 @@
             <button onclick="startCamera()">camera</button>
             <video autoplay></video>
         </section>
+
+        <video id="video" width="320" height="240" autoplay></video>
+        <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+        <button id="share-button">Share Photo</button>
     </main>
+
+    <script src="/app.js"></script>
 </body>
 </html>
